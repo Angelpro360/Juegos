@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesca el Pez</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(to bottom, #1e90ff, #00bfff);
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            margin: 0 auto;
+            background: linear-gradient(to bottom, #1e90ff, #00bfff);
+            border: 3px solid #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #score {
+            font-size: 24px;
+            margin: 10px;
+            color: white;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        #timer {
+            font-size: 24px;
+            margin: 10px;
+            color: white;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .fish {
+            position: absolute;
+            font-size: 40px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            z-index: 5;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #hook {
+            position: absolute;
+            font-size: 24px;
+            z-index: 10;
+            display: none;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+        }
+
+        #fishing-line {
+            position: absolute;
+            width: 2px;
+            height: 0;
+            background-color: rgba(255, 255, 255, 0.7);
+            z-index: 3;
+            display: none;
+        }
+
+        #start-btn,
+        #reset-btn {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+
+        #start-btn:hover,
+        #reset-btn:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
+        .bubble {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            z-index: 1;
+            animation: float 5s infinite ease-in;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: translateY(-100px) scale(1.2);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1 style="color: white; text-shadow: 2px 2px 4px #000;">Pesca el Pez</h1>
+    <div id="score">Puntos: 0</div>
+    <div id="timer">Tiempo: 60</div>
+    <div id="game-container">
+        <div id="fishing-line"></div>
+        <div id="hook">🪱</div>
+    </div>
+    <button id="start-btn">Comenzar</button>
+    <button id="reset-btn">Reiniciar</button>
+
+    <script>
+        // Variables del juego
+        let score = 0;
+        let timeLeft = 60;
+        let gameActive = false;
+        let timer;
+        let fishCount = 0;
+        const maxFish = 8;
+        const fishTypes = [
+            { emoji: "🐟", points: 10, speed: 2 },  // Pez común
+            { emoji: "🐠", points: 20, speed: 3 },  // Pez tropical
+            { emoji: "🐡", points: 30, speed: 1.5 } // Pez globo
+        ];
+
+        // Elementos del DOM
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const fishingLine = document.getElementById('fishing-line');
+        const hook = document.getElementById('hook');
+
+        // Crear burbujas de fondo
+        function createBubbles() {
+            if (!gameActive) return;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+
+            const size = Math.random() * 20 + 10;
+            const left = Math.random() * gameContainer.offsetWidth;
+
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${left}px`;
+            bubble.style.bottom = '0';
+            bubble.style.animationDuration = `${Math.random() * 3 + 3}s`;
+
+            gameContainer.appendChild(bubble);
+
+            setTimeout(() => {
+                bubble.remove();
+            }, 5000);
+        }
+
+        // Crear un pez
+        function createFish() {
+            if (!gameActive || fishCount >= maxFish) return;
+
+            const fish = document.createElement('div');
+            fish.className = 'fish';
+
+            const fishType = fishTypes[Math.floor(Math.random() * fishTypes.length)];
+            fish.innerHTML = fishType.emoji;
+            fish.dataset.points = fishType.points;
+            fish.dataset.direction = Math.random() > 0.5 ? 'right' : 'left';
+
+            // Posición inicial
+            const startSide = Math.random() > 0.5 ? 'left' : 'right';
+            const left = startSide === 'left' ? -40 : gameContainer.offsetWidth + 40;
+            const top = 60 + Math.random() * (gameContainer.offsetHeight - 100);
+
+            fish.style.left = `${left}px`;
+            fish.style.top = `${top}px`;
+
+            // Orientación inicial
+            fish.style.transform = fish.dataset.direction === 'right' ? 'scaleX(1)' : 'scaleX(-1)';
+
+            // Velocidad y movimiento
+            const speed = fishType.speed + Math.random() * 1.5;
+            let direction = startSide === 'left' ? 1 : -1;
+
+            fish.moveInterval = setInterval(() => {
+                const currentLeft = parseFloat(fish.style.left);
+                const newLeft = currentLeft + (speed * direction);
+
+                fish.style.left = `${newLeft}px`;
+
+                // Cambiar dirección si llega al borde
+                if (newLeft < -50 || newLeft > gameContainer.offsetWidth + 50) {
+                    fishCount--;
+                    fish.remove();
+                    clearInterval(fish.moveInterval);
+                }
+            }, 20);
+
+            // Click en el pez
+            fish.addEventListener('click', () => catchFish(fish));
+
+            gameContainer.appendChild(fish);
+            fishCount++;
+        }
+
+        // Atrapar un pez
+        function catchFish(fish) {
+            if (!gameActive || !fish.parentNode) return;
+
+            // Verificar si el pez está cerca del anzuelo
+            const fishRect = fish.getBoundingClientRect();
+            const hookRect = hook.getBoundingClientRect();
+
+            const distance = Math.sqrt(
+                Math.pow(fishRect.left + fishRect.width / 2 - (hookRect.left + hookRect.width / 2), 2) +
+                Math.pow(fishRect.top + fishRect.height / 2 - (hookRect.top + hookRect.height / 2), 2)
+            );
+
+            if (distance < 50) { // Rango de captura
+                score += parseInt(fish.dataset.points);
+                scoreElement.textContent = `Puntos: ${score}`;
+
+                // Animación de captura
+                clearInterval(fish.moveInterval);
+                fish.style.transition = 'all 0.5s';
+                fish.style.left = `${parseFloat(hook.style.left)}px`;
+                fish.style.top = `${parseFloat(hook.style.top)}px`;
+                fish.style.transform = 'scale(0.5) rotate(30deg)';
+                fish.style.opacity = '0.7';
+
+                setTimeout(() => {
+                    if (fish.parentNode) {
+                        fish.remove();
+                        fishCount--;
+                    }
+                }, 500);
+            }
+        }
+
+        // Actualizar el sedal
+        function updateFishingLine() {
+            fishingLine.style.height = `${parseFloat(hook.style.top)}px`;
+            fishingLine.style.left = `${parseFloat(hook.style.left) + 12}px`;
+            fishingLine.style.top = '0';
+        }
+
+        // Mover el anzuelo con el mouse
+        gameContainer.addEventListener('mousemove', (e) => {
+            if (!gameActive) return;
+
+            const containerRect = gameContainer.getBoundingClientRect();
+            const x = e.clientX - containerRect.left;
+            const y = e.clientY - containerRect.top;
+
+            // Limitar el anzuelo al área del agua
+            const maxY = containerRect.height - 30;
+            const hookY = Math.min(y, maxY);
+
+            hook.style.left = `${x - 12}px`;
+            hook.style.top = `${hookY}px`;
+            updateFishingLine();
+        });
+
+        // Temporizador
+        function updateTimer() {
+            timeLeft--;
+            timerElement.textContent = `Tiempo: ${timeLeft}`;
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        // Iniciar juego
+        function startGame() {
+            if (gameActive) return;
+
+            score = 0;
+            timeLeft = 60;
+            gameActive = true;
+            scoreElement.textContent = `Puntos: ${score}`;
+            timerElement.textContent = `Tiempo: ${timeLeft}`;
+
+            // Limpiar peces existentes
+            document.querySelectorAll('.fish').forEach(fish => fish.remove());
+            fishCount = 0;
+
+            // Mostrar el sedal y anzuelo
+            fishingLine.style.display = 'block';
+            hook.style.display = 'block';
+
+            // Posición inicial del anzuelo
+            hook.style.left = `${gameContainer.offsetWidth / 2 - 12}px`;
+            hook.style.top = '100px';
+            updateFishingLine();
+
+            // Iniciar temporizador
+            timer = setInterval(updateTimer, 1000);
+
+            // Generar peces y burbujas
+            setInterval(createFish, 1000);
+            setInterval(createBubbles, 300);
+        }
+
+        // Finalizar juego
+        function endGame() {
+            gameActive = false;
+            clearInterval(timer);
+            alert(`¡Juego terminado! Puntuación final: ${score}`);
+
+            // Ocultar el sedal y anzuelo
+            fishingLine.style.display = 'none';
+            hook.style.display = 'none';
+        }
+
+        // Reiniciar juego
+        function resetGame() {
+            endGame();
+            startGame();
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startGame);
+        resetBtn.addEventListener('click', resetGame);
+    </script>
+</body>
+
+</html>

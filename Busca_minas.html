@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscaminas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #game {
+            margin-top: 20px;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            gap: 2px;
+            background-color: #999;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 3px;
+        }
+
+        .cell.revealed {
+            background-color: #eee;
+        }
+
+        .cell.mine {
+            background-color: #ff4444;
+        }
+
+        .cell.flagged {
+            background-color: #ffcc00;
+        }
+
+        #controls {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #status {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Buscaminas</h1>
+    <div id="game">
+        <div id="board"></div>
+        <div id="controls">
+            <button id="reset">Reiniciar</button>
+            <div id="status">¡Encuentra todas las minas!</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración del juego
+        const ROWS = 10;
+        const COLS = 10;
+        const MINES = 15;
+
+        let board = [];
+        let revealed = [];
+        let flagged = [];
+        let gameOver = false;
+
+        // Elementos del DOM
+        const boardElement = document.getElementById('board');
+        const resetButton = document.getElementById('reset');
+        const statusElement = document.getElementById('status');
+
+        // Inicializar el juego
+        function initGame() {
+            board = [];
+            revealed = Array(ROWS).fill().map(() => Array(COLS).fill(false));
+            flagged = Array(ROWS).fill().map(() => Array(COLS).fill(false));
+            gameOver = false;
+            statusElement.textContent = '¡Encuentra todas las minas!';
+
+            // Crear tablero vacío
+            for (let i = 0; i < ROWS; i++) {
+                board[i] = Array(COLS).fill(0);
+            }
+
+            // Colocar minas aleatoriamente
+            let minesPlaced = 0;
+            while (minesPlaced < MINES) {
+                const row = Math.floor(Math.random() * ROWS);
+                const col = Math.floor(Math.random() * COLS);
+
+                if (board[row][col] !== -1) {
+                    board[row][col] = -1; // -1 representa una mina
+                    minesPlaced++;
+                }
+            }
+
+            // Calcular números adyacentes
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j < COLS; j++) {
+                    if (board[i][j] === -1) continue;
+
+                    let count = 0;
+                    for (let di = -1; di <= 1; di++) {
+                        for (let dj = -1; dj <= 1; dj++) {
+                            const ni = i + di;
+                            const nj = j + dj;
+                            if (ni >= 0 && ni < ROWS && nj >= 0 && nj < COLS && board[ni][nj] === -1) {
+                                count++;
+                            }
+                        }
+                    }
+                    board[i][j] = count;
+                }
+            }
+
+            renderBoard();
+        }
+
+        // Renderizar el tablero
+        function renderBoard() {
+            boardElement.innerHTML = '';
+            boardElement.style.gridTemplateColumns = `repeat(${COLS}, 30px)`;
+
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j < COLS; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+
+                    if (revealed[i][j]) {
+                        cell.classList.add('revealed');
+                        if (board[i][j] === -1) {
+                            cell.classList.add('mine');
+                            cell.textContent = '💣';
+                        } else if (board[i][j] > 0) {
+                            cell.textContent = board[i][j];
+                            // Colores para los números
+                            const colors = ['', 'blue', 'green', 'red', 'darkblue', 'brown', 'teal', 'black', 'gray'];
+                            cell.style.color = colors[board[i][j]];
+                        }
+                    } else if (flagged[i][j]) {
+                        cell.classList.add('flagged');
+                        cell.textContent = '🚩';
+                    }
+
+                    cell.addEventListener('click', () => handleClick(i, j));
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        handleRightClick(i, j);
+                    });
+
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        // Manejar clic izquierdo (revelar celda)
+        function handleClick(row, col) {
+            if (gameOver || revealed[row][col] || flagged[row][col]) return;
+
+            revealed[row][col] = true;
+
+            if (board[row][col] === -1) {
+                // Explotó una mina
+                gameOver = true;
+                revealAllMines();
+                statusElement.textContent = '¡Perdiste! 💥';
+            } else if (board[row][col] === 0) {
+                // Revelar celdas adyacentes si es 0
+                revealAdjacent(row, col);
+            }
+
+            if (checkWin()) {
+                gameOver = true;
+                statusElement.textContent = '¡Ganaste! 🎉';
+            }
+
+            renderBoard();
+        }
+
+        // Manejar clic derecho (bandera)
+        function handleRightClick(row, col) {
+            if (gameOver || revealed[row][col]) return;
+
+            flagged[row][col] = !flagged[row][col];
+            renderBoard();
+        }
+
+        // Revelar celdas adyacentes (para celdas vacías)
+        function revealAdjacent(row, col) {
+            for (let di = -1; di <= 1; di++) {
+                for (let dj = -1; dj <= 1; dj++) {
+                    const ni = row + di;
+                    const nj = col + dj;
+                    if (ni >= 0 && ni < ROWS && nj >= 0 && nj < COLS && !revealed[ni][nj] && !flagged[ni][nj]) {
+                        revealed[ni][nj] = true;
+                        if (board[ni][nj] === 0) {
+                            revealAdjacent(ni, nj);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Revelar todas las minas (al perder)
+        function revealAllMines() {
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j < COLS; j++) {
+                    if (board[i][j] === -1) {
+                        revealed[i][j] = true;
+                    }
+                }
+            }
+        }
+
+        // Verificar si el jugador ganó
+        function checkWin() {
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j < COLS; j++) {
+                    if (board[i][j] !== -1 && !revealed[i][j]) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Evento para reiniciar el juego
+        resetButton.addEventListener('click', initGame);
+
+        // Iniciar el juego al cargar la página
+        initGame();
+    </script>
+</body>
+
+</html>

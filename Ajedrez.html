@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajedrez Funcional</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        #chessboard {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            gap: 0;
+            border: 2px solid #333;
+        }
+
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .white {
+            background-color: #f0d9b5;
+        }
+
+        .black {
+            background-color: #b58863;
+        }
+
+        .highlight {
+            background-color: rgba(0, 255, 0, 0.5) !important;
+        }
+
+        .selected {
+            background-color: rgba(255, 255, 0, 0.5) !important;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #controls {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Ajedrez Funcional</h1>
+    <div id="chessboard"></div>
+    <div id="status">Turno: Blancas</div>
+    <div id="controls">
+        <button id="reset">Reiniciar</button>
+    </div>
+
+    <script>
+        // Configuración inicial del tablero
+        const initialBoard = [
+            ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+            ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+        ];
+
+        // Símbolos Unicode para las piezas
+        const pieceSymbols = {
+            'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
+            'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙'
+        };
+
+        let board = JSON.parse(JSON.stringify(initialBoard));
+        let selectedPiece = null;
+        let turn = 'white';
+
+        // Elementos del DOM
+        const chessboard = document.getElementById('chessboard');
+        const statusElement = document.getElementById('status');
+        const resetButton = document.getElementById('reset');
+
+        // Renderizar el tablero
+        function renderBoard() {
+            chessboard.innerHTML = '';
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.className = `square ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
+                    square.dataset.row = row;
+                    square.dataset.col = col;
+
+                    if (board[row][col]) {
+                        square.textContent = pieceSymbols[board[row][col]];
+                        square.style.color = board[row][col] === board[row][col].toUpperCase() ? 'white' : 'black';
+                    }
+
+                    square.addEventListener('click', () => handleSquareClick(row, col));
+                    chessboard.appendChild(square);
+                }
+            }
+
+            // Resaltar pieza seleccionada
+            if (selectedPiece) {
+                const [row, col] = selectedPiece;
+                const square = document.querySelector(`.square[data-row="${row}"][data-col="${col}"]`);
+                square.classList.add('selected');
+
+                // Mostrar movimientos válidos
+                const validMoves = getValidMoves(row, col);
+                validMoves.forEach(([r, c]) => {
+                    const moveSquare = document.querySelector(`.square[data-row="${r}"][data-col="${c}"]`);
+                    if (moveSquare) moveSquare.classList.add('highlight');
+                });
+            }
+
+            statusElement.textContent = `Turno: ${turn === 'white' ? 'Blancas' : 'Negras'}`;
+        }
+
+        // Obtener movimientos válidos (ahora con movimiento doble de peones)
+        function getValidMoves(row, col) {
+            const piece = board[row][col];
+            const moves = [];
+            const color = piece === piece.toUpperCase() ? 'white' : 'black';
+
+            if ((color === 'white' && turn !== 'white') || (color === 'black' && turn !== 'black')) {
+                return moves;
+            }
+
+            // Movimientos de peón
+            if (piece.toLowerCase() === 'p') {
+                const direction = color === 'white' ? -1 : 1;
+                const startRow = color === 'white' ? 6 : 1;
+
+                // Movimiento hacia adelante
+                if (board[row + direction][col] === '') {
+                    moves.push([row + direction, col]);
+
+                    // Movimiento doble desde posición inicial
+                    if (row === startRow && board[row + 2 * direction][col] === '') {
+                        moves.push([row + 2 * direction, col]);
+                    }
+                }
+
+                // Capturas diagonales
+                for (const dc of [-1, 1]) {
+                    const newCol = col + dc;
+                    if (newCol >= 0 && newCol < 8) {
+                        const target = board[row + direction][newCol];
+                        if (target && isOpponent(piece, target)) {
+                            moves.push([row + direction, newCol]);
+                        }
+                    }
+                }
+                return moves;
+            }
+
+            // Movimientos de otras piezas (versión simplificada)
+            const directions = {
+                'n': [[2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]], // Caballo
+                'b': [[1, 1], [1, -1], [-1, 1], [-1, -1]], // Alfil
+                'r': [[1, 0], [0, 1], [-1, 0], [0, -1]], // Torre
+                'q': [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]], // Reina
+                'k': [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] // Rey
+            };
+
+            const pieceType = piece.toLowerCase();
+            const pieceDirs = directions[pieceType] || [];
+
+            for (const [dr, dc] of pieceDirs) {
+                const newRow = row + dr;
+                const newCol = col + dc;
+
+                if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                    const target = board[newRow][newCol];
+                    if (!target || isOpponent(piece, target)) {
+                        moves.push([newRow, newCol]);
+                    }
+                }
+            }
+
+            return moves;
+        }
+
+        // Verificar si una pieza es del oponente
+        function isOpponent(piece1, piece2) {
+            return (piece1 === piece1.toUpperCase() && piece2 === piece2.toLowerCase()) ||
+                (piece1 === piece1.toLowerCase() && piece2 === piece2.toUpperCase());
+        }
+
+        // Manejar clic en una casilla
+        function handleSquareClick(row, col) {
+            const piece = board[row][col];
+
+            // Seleccionar pieza del color correcto
+            if (!selectedPiece && piece && (
+                (turn === 'white' && piece === piece.toUpperCase()) ||
+                (turn === 'black' && piece === piece.toLowerCase())
+            )) {
+                selectedPiece = [row, col];
+                renderBoard();
+                return;
+            }
+
+            // Mover pieza seleccionada
+            if (selectedPiece) {
+                const [selectedRow, selectedCol] = selectedPiece;
+                const validMoves = getValidMoves(selectedRow, selectedCol);
+
+                // Verificar si el movimiento es válido
+                const isValidMove = validMoves.some(([r, c]) => r === row && c === col);
+
+                if (isValidMove) {
+                    // Mover la pieza
+                    board[row][col] = board[selectedRow][selectedCol];
+                    board[selectedRow][selectedCol] = '';
+
+                    // Cambiar turno
+                    turn = turn === 'white' ? 'black' : 'white';
+                }
+
+                // Deseleccionar pieza
+                selectedPiece = null;
+                renderBoard();
+            }
+        }
+
+        // Reiniciar el juego
+        function resetGame() {
+            board = JSON.parse(JSON.stringify(initialBoard));
+            selectedPiece = null;
+            turn = 'white';
+            renderBoard();
+        }
+
+        // Event listeners
+        resetButton.addEventListener('click', resetGame);
+
+        // Inicializar el juego
+        renderBoard();
+    </script>
+</body>
+
+</html>

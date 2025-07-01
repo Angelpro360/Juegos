@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clase con JavasCript</title>
+</head>
+<body>
+    <!DOCTYPE html>
+    <html lang="en">
+    
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Calculadora con JavaScript</title>
+        <!-- Agrega el enlace al archivo CSS -->
+        <link rel="stylesheet" href="style.css">
+        <!-- Agrega Font Awesome para íconos -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    </head>
+    
+    <body>
+        <h1><i class="fas fa-calculator"></i> Calculadora con JavaScript</h1>
+    
+        <div class="calculator-section">
+            <h4><i class="fas fa-plus-circle"></i> Función de la suma</h4>
+            <span>Ingrese el primer número:</span><input type="number" id="num1"><br>
+            <span>Ingrese el segundo número:</span><input type="number" id="num2"><br>
+            <button id="btnSumar" onclick="boton1()"><i class="fas fa-plus"></i> Sumar</button>
+            <p id="resultado">Resultado: </p>
+        </div>
+    
+        <hr>
+    
+        <div class="calculator-section">
+            <h4><i class="fas fa-minus-circle"></i> Función de la resta</h4>
+            <span>Ingrese el minuendo:</span><input type="number" id="minuendo"><br>
+            <span>Ingrese el sustraendo:</span><input type="number" id="sustraendo"><br>
+            <button id="btnRestar" onclick="resta()"><i class="fas fa-minus"></i> Restar</button>
+            <p id="diferencia">Resultado: </p>
+        </div>
+    
+        <hr>
+    
+        <div class="calculator-section">
+            <h4><i class="fas fa-weight"></i> Cálculo del Índice de Masa Corporal</h4>
+            <label for="peso">Peso (kg):</label>
+            <input type="number" id="peso"><br>
+            <label for="estatura">Estatura (m):</label>
+            <input type="number" id="estatura" step="0.01"><br>
+            <button id="btnIMC" onclick="calcula_imc()"><i class="fas fa-calculator"></i> Calcular</button>
+            <p id="resultadoIMC">IMC: </p>
+            <p id="consejo">¡Estás lleno de amor!</p>
+        </div>
+    
+        <!-- Se vincula el HTML con el Javascript-->
+        <script src="js/apps.js"></script>
+    </body>
+    
+    </html>
+    <h1>Clase con JavasCript</h1>
+    <h4>función de la suma</h4>
+    <span>Ingrese el primer numero:</span><input type="number" id="num1"><br>
+    <span>Ingrese el segundo numero:</span><input type="number" id="num2"><br>
+    <button id="btnSumar" onclick="boton1()">Sumar</button>
+    <p id="resultado">RTA:</p>
+    <hr>
+    <div>
+        <h4>función de la resta</h4>
+    <span>Ingrese el minuendo:</span><input type="number" id="minuendo"><br>
+    <span>Ingrese el sustraendo:</span><input type="number" id="sustraendo"><br>
+    <button id="btnRestar" onclick="resta()">Resta</button>
+    <p id="diferencia">RTA:</p>
+    </div>
+    <hr>
+    <div>
+      <h4>Calculo del Indice de masa corporal</h4>
+      <label for="peso">Peso:</label>
+      <input type="number" id="peso"><br>
+      <label for="estatura">Estatura:</label>
+      <input type="number" id="estatura"><br>
+      <button id="btnIMC" onclick="calcula_imc()">Calcular</button>
+      <p id="resultadoIMC">IMC</p>
+      <p id="consejo">estas lleno de amor!</p>
+    </div>
+    <!-- Se vincula el HTML con el Javascript-->
+     <script src="js/apps.js"></script>
+</body>
+</html>
